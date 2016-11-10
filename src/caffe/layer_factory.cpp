@@ -14,6 +14,7 @@
 #include "caffe/layers/sigmoid_layer.hpp"
 #include "caffe/layers/softmax_layer.hpp"
 #include "caffe/layers/tanh_layer.hpp"
+#include "caffe/layers/unpooling_layer.hpp"
 #include "caffe/proto/caffe.pb.h"
 
 #ifdef USE_CUDNN
@@ -25,6 +26,7 @@
 #include "caffe/layers/cudnn_sigmoid_layer.hpp"
 #include "caffe/layers/cudnn_softmax_layer.hpp"
 #include "caffe/layers/cudnn_tanh_layer.hpp"
+#include "caffe/layers/unpooling_layer.hpp"
 #endif
 
 #ifdef WITH_PYTHON_LAYER
@@ -237,6 +239,32 @@ shared_ptr<Layer<Dtype> > GetTanHLayer(const LayerParameter& param) {
 }
 
 REGISTER_LAYER_CREATOR(TanH, GetTanHLayer);
+
+
+// Get unpooling layer according to engine.
+template <typename Dtype>
+shared_ptr<Layer<Dtype> > GetUnpoolingLayer(const LayerParameter& param) {
+  UnpoolingParameter_Engine engine = param.unpooling_param().engine();
+  if (engine == UnpoolingParameter_Engine_DEFAULT) {
+    engine = UnpoolingParameter_Engine_CAFFE;
+#ifdef USE_CUDNN
+    engine = UnpoolingParameter_Engine_CUDNN;
+#endif
+  }
+  if (engine == UnpoolingParameter_Engine_CAFFE) {
+    return shared_ptr<Layer<Dtype> >(new UnpoolingLayer<Dtype>(param));
+  #ifdef USE_CUDNN
+  } else if (engine == UnpoolingParameter_Engine_CUDNN) {
+    return shared_ptr<Layer<Dtype> >(new UnpoolingLayer<Dtype>(param));
+#endif 
+  }else {
+    LOG(FATAL) << "Layer " << param.name() << " has unknown engine.";
+  }
+}
+
+REGISTER_LAYER_CREATOR(Unpooling, GetUnpoolingLayer);
+
+
 
 #ifdef WITH_PYTHON_LAYER
 template <typename Dtype>
